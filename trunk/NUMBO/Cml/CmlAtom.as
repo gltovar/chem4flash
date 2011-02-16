@@ -16,9 +16,17 @@ package NUMBO.Cml
 		public static const Tag:String = "atom";
 		// log here
 		
-		public function CmlAtom(element:Object)
+		public function CmlAtom(element:Object = null)
 		{
-			super(element);
+			if(!element)
+			{
+				default xml namespace = CmlConstants.CmlxNamespace;
+				super( '<' + Tag + '/>';
+			}
+			else if(element is XML)
+			{
+				super( element );
+			}
 		}
 		
 		/**
@@ -28,12 +36,12 @@ package NUMBO.Cml
 		 */		
 		public function get ElementType():String
 		{
-			var att:XMLList = DelegateElement.@[CmlAttribute.ElementType];
+			var att:XMLList = DelegateElement['@'+CmlAttribute.ElementType];
 			return (att.length() == 0) ? null : att[0].toString();
 		}
 		public function set ElementType(value:String):void
 		{
-			DelegateElement.@[CmlAttribute.ElementType] = value;
+			DelegateElement['@'+CmlAttribute.ElementType] = value;
 		}
 		
 		/**
@@ -43,7 +51,7 @@ package NUMBO.Cml
 		 */		
 		public function get Count():Number
 		{
-			var countAttribute:XMLList = DelegateElement.@[CmlAttribute.Count];
+			var countAttribute:XMLList = DelegateElement['@'+CmlAttribute.Count];
 			return (countAttribute.length() == 0 || countAttribute[0].toString() == null || 
 						countAttribute[0].toString() != "")
 							?
@@ -52,7 +60,7 @@ package NUMBO.Cml
 		}
 		public function set Count(value:Number):void
 		{
-			DelegateElement.@[CmlAttribute.Count] = value.toString();
+			DelegateElement['@'+CmlAttribute.Count] = value.toString();
 		}
 		
 		/**

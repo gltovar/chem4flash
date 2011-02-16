@@ -75,21 +75,21 @@ package NUMBO.Cml
 			if( isNaN(value) )
 			{
 				// remove attribute
-				var attribute:XMLList = delegateElement.@[FormalCharge];
+				var attribute:XMLList = delegateElement['@'+FormalCharge];
 				if( attribute.length() )
 				{
-					delete delegateElement.@[FormalCharge];
+					delete delegateElement['@'+FormalCharge];
 				}
 			}
 			else
 			{
-				 delegateElement.@[FormalCharge] = value.toString();
+				 delegateElement['@'+FormalCharge] = value.toString();
 			}
 		}
 		
 		public static function GetFormalCharge(delegateElement:XML):int
 		{
-			var chargeAttribute:XMLList = delegateElement.@[FormalCharge];
+			var chargeAttribute:XMLList = delegateElement['@'+FormalCharge];
 			var ch:int = NaN;
 			if( chargeAttribute.length() )
 			{

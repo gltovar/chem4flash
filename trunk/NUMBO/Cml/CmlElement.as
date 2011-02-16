@@ -11,6 +11,8 @@
 
 package NUMBO.Cml
 {
+	import dotnet.utils.HashCode;
+
 	/**
 	 *Superclass of all CML element classes
 	 * this class delegates to an XML  
@@ -19,7 +21,7 @@ package NUMBO.Cml
 	{
 		// TODO change these to cmlx later
 		private const var Deleted:String = "deleted";
-		private const var True = "true";
+		private const var True:String = "true";
 		protected const var XsdDouble:String = "xsd:double";
 		
 		protected const var XsdInteger:String = "xsd:integer";
@@ -63,7 +65,7 @@ package NUMBO.Cml
 		//private var _Id:String;
 		public function get Id():String
 		{
-			var att:XMLList = DelegateElement.@[CmlAttribute.ID];
+			var att:XMLList = DelegateElement['@'+CmlAttribute.ID];
 			return ( !att.length() ) ? null : att[0].toString();
 		}
 		public function set Id(value:String):void
@@ -72,7 +74,7 @@ package NUMBO.Cml
 			{
 				throw new Error("the value of an id attribute must not be null or empty");
 			}
-			DelegateElement.@[CmlAttribute.ID] = value;
+			DelegateElement['@'+CmlAttribute.ID] = value;
 		}
 		
 		public function GetFirstCmlChild(localName:String):CmlElement
@@ -81,6 +83,13 @@ package NUMBO.Cml
 			return elems.length() == 0 ? null : CreateElement( new XML(DelegateElement.elements( CmlConstants.CmlxNamespace + localName).child(0).toXMLString()) );
 		}
 		
+		public function GetTag():String
+		{
+			throw new Error("GetTag() must be over ridden");
+			return "";
+		}
+		
+		// TODO FINISH!
 		public static function CreateElement(element:XML):CmlElement
 		{
 			var cmlElement:CmlElement = null;
@@ -92,12 +101,50 @@ package NUMBO.Cml
 			return cmlElement;
 		}
 		
-		public function GetTag():String
+		public function Equals(cmlElement:CmlElement):Boolean
 		{
-			throw new Error("GetTag() must be over ridden");
-			return "";
+			return DelegateElement == cmlElement.DelegateElement;
+		}
+		
+		public function GetHashCode():int
+		{
+			return HashCode.GetHashCodeInt(DelegateElement);
+		}
+		
+		public function DeleteSimple(mark:Boolean):void
+		{
+			if( IsDeleted() )
+			{
+				// log output
+			}
+			else
+			{
+				if( this.DelegateElement.parent() != null )
+				{
+					delete this.DelegateElement.parent().children()[this.DelegateElement.childIndex()];
+					if( mark )
+					{
+						MarkAsDeleted(this.DelegateElement);
+					}
+				}
+			}
 		}
 		
 		
+		private function MarkAsDeleted(delegateElement:XML):void
+		{
+			delegateElement['@'+Deleted] = True;
+		}
+		
+		private function IsDeleted():Boolean
+		{
+			var deleted:Boolean = false;
+			var att:XMLList = this.DelegateElement['@'+Deleted];
+			if(att.length() != 0)
+			{
+				deleted = att[0].toString() == True; // comparing to string not literial
+			}
+			return deleted;
+		}
 	}
 }
