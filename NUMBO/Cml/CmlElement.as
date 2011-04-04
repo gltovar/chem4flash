@@ -116,6 +116,7 @@ package NUMBO.Cml
 			if( IsDeleted() )
 			{
 				// log output
+				trace( "WARN: trying to delete previously deleted CMLElement " + GetTag() );
 			}
 			else
 			{
@@ -130,6 +131,37 @@ package NUMBO.Cml
 			}
 		}
 		
+		public function CleanDecendantDeletedAttributes():void
+		{
+			CleanDeletedAttribute( this.DelegateElement );
+			var descendants:XMLList = this.DelegateElement.descendants('*');
+			var i:int;
+			for( i = 0; i < descendants.length(); i++)
+			{
+				CleanDeletedAttribute( descendants[i] as XML );
+			}
+			
+		}
+		
+		internal function AddCmlxAttribute(localName:String, value:String):void
+		{
+			default xml namespace = CmlConstants.CmlxNamespace;
+			var att:XMLList = this.DelegateElement['@' + localName];
+			if( att.length() != 0 )
+			{
+				delete this.DelegateElement['@' + localName];
+			}
+			this.DelegateElement['@' + localName] = value;
+		}
+		
+		private function CleanDeletedAttribute(element:XML):void
+		{
+			var att:XMLList = element.['@' + Deleted];
+			if( att.length() )
+			{
+				delete element['@' + Deleted][0];
+			}
+		}
 		
 		private function MarkAsDeleted(delegateElement:XML):void
 		{
@@ -145,6 +177,11 @@ package NUMBO.Cml
 				deleted = att[0].toString() == True; // comparing to string not literial
 			}
 			return deleted;
+		}
+		
+		public override function toString():String
+		{
+			return DelegateElement.toXMLString(); // c# XElements return their full xml
 		}
 	}
 }
