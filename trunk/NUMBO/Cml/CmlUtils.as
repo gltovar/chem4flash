@@ -215,38 +215,79 @@ package NUMBO.Cml
 		 * @return the first ancestor molecule or null if xElement == null or does not exist
 		 * @exception if xElement is null
 		 */		
-		public static function GetFirstAncestorMolecule(xElement:XML):CmlMolecule
+		public static function GetFirstAncestorMolecule(paramObject:Object):CmlMolecule
 		{
 			var molecule:CmlMolecule = null;
 			
-			//default xml namespace = CmlConstants.Cmlns; TODO: not sure why i need to use the uri here!
-			
-			var moleculeXElement:XML = XmlUtils.getFirstAncestorOfNodeType(xElement, CmlConstants.CmlxNamespace, CmlMolecule.Tag);
-			
-			if( moleculeXElement != null )
+			if( paramObject is XML )
 			{
-				molecule = new CmlMolecule(moleculeXElement);
+				var xElement:XML = paramObject as XML;
+				
+				//default xml namespace = CmlConstants.Cmlns; TODO: not sure why i need to use the uri here!
+				
+				var moleculeXElement:XML = XmlUtils.getFirstAncestorOfNodeType(xElement, CmlConstants.Cmlns, CmlMolecule.Tag);
+				
+				if( moleculeXElement != null )
+				{
+					molecule = new CmlMolecule(moleculeXElement);
+				}
+				else
+				{
+					// log no ancestor
+				}
+				return molecule;
+				
 			}
-			else
+			else if( paramObject is CmlElement )
 			{
-				// log no ancestor
+				var cmlElement:CmlElement = paramObject as CmlElement;
+				
+				
+				if( cmlElement != null )
+				{
+					molecule = GetFirstAncestorMolecule(cmlElement.DelegateElement);
+				}
+				return molecule;
 			}
-			return molecule;
+			
+			
 		}
+
 		
 		/**
-		 * Get the first ancestor molecule of this element of null if it does not exist 
-		 * @param cmlElement the object to get the ancestor molecule of
-		 * @return first ancestor molecule or null if cmlElement == null or ancestor does not exist
-		 */		
-		public static function GetFirstAncestorMolecule(cmlElement:CmlElement):CmlMolecule
+		 * Get the first ancestor molecule of this element or null if it does not exist
+		 * @param xElements the object to get the ancestor molecule of
+		 * @return first ancestor molecule or null if xElement == null or ancestor does not exist
+		 * @exception if xElement is null
+		 */
+		public static function GetFirstCommonAncestorMolecule(xElements:Vector.<XML>):CmlMolecule  // this might have to be an xmllist
 		{
-			var molecule = null;
-			if( cmlElement != null )
+			if( xElements == null )
 			{
-				molecule = GetFirstAncestorMolecule(cmlElement.DelegateElement);
+				return null;
 			}
-			return molecule;
+			if( xElements.length == 0 )
+			{
+				return null;
+			}
+			
+			var moleculeParents:Vector.<XML> = new Vector.<XML>;
+			var xElement:XML;
+			for each( xElement in xElements )
+			{
+				var moleculeXElement:XML = XmlUtils.getFirstAncestorOfNodeType(xElement, CmlConstants.Cmlns, CmlMolecule.Tag);
+				
+				if( moleculeXElement == null )
+				{
+					trace("No ancestor molecule Delegate");
+					return null;
+				}
+				moleculeParents.push( moleculeXElement );
+			}
+			
+			return ( moleculeParents.length == 1 )
+						? new CmlMolecule( moleculeParents[1] )
+						: GetFirstCommonAncestorMolecule( moleculeParents );
 		}
 		
 		/**
@@ -282,9 +323,78 @@ package NUMBO.Cml
 				throw new ArgumentError("cannot use add(bond); use molecule.AddBond(bond)");
 			}
 			
+			Remove(child);
+			cmlElement.DelegateElement.appendChild(child.DelegateElement);
 			
 		}
 		
+		/**
+		 * always adds child convenience method
+		 * removes any existing children of any thype
+		 * throws exception for adding atoms or bonds to anything 
+		 * @param cmlElement the element to add the child to
+		 * @param child the element to add
+		 * 
+		 */		
+		public static function AddOnlyChild(cmlElement:CmlElement, child:CmlElement, overwrite:int = -1):void
+		{
+			var childElements:XMLList;
+			var childElement:XML;
+			var i:int;
+			
+			if( overwrite == -1 )
+			{
+				childElements = cmlElement.DelegateElement.elements();
+				
+				//for each(childElement in childElements)
+				for( i=0; i < childElements.length(); i++)
+				{
+					childElement = childElements[i];
+					delete childElement.parent().children()[childElement.childIndex()];
+				}
+				Add(cmlElement, child);
+			}
+			else
+			{
+				childElements = cmlElement.DelegateElement.elements(child.DelegateElement.localName());
+				if( overwrite == 1 )
+				{
+					var xe:XML;
+					//for each(xe in childElements)
+					for(i=0; i < childElements.length(); i++)
+					{
+						xe = childElements[i];
+						delete xe.parent().children()[xe.childIndex()];
+					}
+					cmlElement.DelegateElement.appendChild(child.DelegateElement);
+				}
+				else if( childElements.length() == 0 )
+				{
+					cmlElement.DelegateElement.appendChild( child.DelegateElement );
+				}
+			}
+		}
+		
+		/**
+		 * Adds a namespace declaration to the cmlElement and binds the uri provided to the given prefix 
+		 * @param cmlElement
+		 * @param prefix
+		 * @param uri
+		 * @return 
+		 * 
+		 */		
+		public static function AddNamespaceDeclaration( cmlElement:CmlElement, prefix:String, uri:String )
+		{
+			cmlElement.DelegateElement['@xmlns' + prefix] = uri;
+		}
+		
+		/**
+		 * removes delegate from its parent delegate
+		 * convenience method 
+		 * user is responsible for keeping track 
+		 * @param cmlElement
+		 * 
+		 */		
 		public static function Remove(cmlElement:CmlElement):void
 		{
 			if( cmlElement == null )
@@ -297,6 +407,11 @@ package NUMBO.Cml
 			}
 		}
 		
+		/**
+		 * gets centroid of sub centroids 
+		 * @param subCentroids
+		 * @return  null if list is null or any subcentroids are null
+		 */		
 		public static function GetCentroid(subCentroids:Vector.<IHasCentroid2>):Point
 		{
 			var centroid:Point = null;
@@ -330,6 +445,77 @@ package NUMBO.Cml
 			
 			return centroid;
 		}
+		
+		/**
+		 * gets all descendant molecules whose parents are not molecules
+		 * molecules can be nested if there are intervening containing elements 
+		 * @param pointer
+		 * @return list of molecules
+		 * 
+		 */		
+		internal static function GetAllToplevelDescendantMolecules(pointer:XML): Vector.<CmlMolecule>
+		{
+			var moleculeList:Vector.<CmlMolecule> = new Vector.<CmlMolecule>;
+			
+			if( pointer != null)
+			{
+				// self == molecule
+				if( pointer.localName() == CmlMolecule.Tag &&
+					pointer.namespace().toString() == CmlConstants.Cmlns )
+				{
+					moleculeList.push( new CmlMolecule(pointer) );
+				}
+				else
+				{
+					default xml namespace = CmlConstants.CmlxNamespace;
+					
+					var descendants:XMLList = pointer.descendants( CmlMolecule.Tag );
+					var element:XML;
+					for( var i=0; i < descendants.length(); i++ )
+					{
+						element = descendants[i];
+						if( (element.parent() as XML).localName() != CmlMolecule.Tag )
+						{
+							moleculeList.push( new CmlMolecule(element));
+						}
+					}
+				}
+			}
+			
+			return moleculeList;
+		}
+		
+		/**
+		 * TODO: looks like this function generates a linq path... which is useless for me. Investage 
+		 * @param xelement
+		 * @return 
+		 * 
+		 */		
+		public static function GenerateFullPath(xelement:XML):String
+		{
+			//var name:String = "*[
+			throw Error( "Investagation of generate full path REQUIRED" );
+		}
+		
+		public static function Annotateoutdated(cmlElement:CmlElement):void
+		{
+			if( cmlElement == null)
+			{
+				throw new Error("cmlElement is null");
+			}
+			if( !IsOutdated( cmlElement ) )
+			{
+				var prefix:String = cmlElement.DelegateElement.namespace().prefix
+			}
+		}
+		
+		public static function IsOutdated(cmlElement:CmlElement):Boolean
+		{
+			default xml namespace = CmlConstants.CmlxNamespace;
+			
+			return cmlElement.DelegateElement['@' + CmlConstants.Outdated] != null;
+		}
+		
 		
 		public function CmlUtils()
 		{
